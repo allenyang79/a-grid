@@ -1,0 +1,31 @@
+doctype html
+html(lang="zh")
+    head
+        title Index
+        link(href="styles/main.css",rel="stylesheet")
+        block head
+    body
+        block content
+
+        script(src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js")
+        script(src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js")
+
+        // build:js scripts/plugins.js
+        script(src="bower_components/sass-bootstrap/js/affix.js")
+        script(src="bower_components/sass-bootstrap/js/alert.js")
+        script(src="bower_components/sass-bootstrap/js/dropdown.js")
+        script(src="bower_components/sass-bootstrap/js/tooltip.js")
+        script(src="bower_components/sass-bootstrap/js/modal.js")
+        script(src="bower_components/sass-bootstrap/js/transition.js")
+        script(src="bower_components/sass-bootstrap/js/button.js")
+        script(src="bower_components/sass-bootstrap/js/popover.js")
+        script(src="bower_components/sass-bootstrap/js/carousel.js")
+        script(src="bower_components/sass-bootstrap/js/scrollspy.js")
+        script(src="bower_components/sass-bootstrap/js/collapse.js")
+        script(src="bower_components/sass-bootstrap/js/tab.js")
+        // endbuild
+
+        // build:js({app,.tmp}) scripts/main.js
+        script(src="scripts/main.js")
+        // endbuild
+        block footer

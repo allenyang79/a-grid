@@ -1,0 +1,24 @@
+@import "compass"
+.a-grid
+    display: block
+    position: relative
+    background: #efefef
+    width: 800px
+    height: 600px
+    overflow: scroll
+    border: 1px solid #333
+
+    .grid-lt,.grid-rt,.grid-lb,.grid-rb
+        position: absolute
+        left: 0
+        top: 0
+    table
+        border-collapse: collapse
+    table,td,th
+        +box-sizing(border-box)
+        border: 1px solid #aaa
+    td,th
+        overflow: hidden
+        width: 100px
+        height: 25px
+
