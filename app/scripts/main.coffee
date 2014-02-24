@@ -1,67 +1,97 @@
 console.log "a-grid GO"
 
-data=[]
-chars="0123456789abcdefghijklomnupqrstuvwxyz".split("")
-for row in [0...5]
-    data[row]?=[]
-    for col in [0...20]
-        data[row][col]="val_#{col}_#{row}"+ do->
-            str=""
-            for k in [0...Math.floor(Math.random()*5)]
-                str+= chars[Math.floor(Math.random()*chars.length)]
-            return str
 
+$.fn.aGrid=(options)->
+    #helper
+    this.getScrollBarSize=_.once ()->
+        gridEl.append("<div class='p' style='visibility:hidden;'><div class='s'>initialize</div></div>")
+        $(".p",gridEl).css("overflow","scroll")
+        w=$(".p",gridEl).width()-$(".s",gridEl).width()
+        $(".p",gridEl).remove()
+        return w
 
-console.dir data
+    this.defaultOptions= 
+        #implement
+        data:do()->
+            _data=[]
+            chars="0123456789abcdefghijklomnupqrstuvwxyz".split("")
+            for row in [0...5]
+                _data[row]?=[]
+                for col in [0...20]
+                    _data[row][col]="val_#{col}_#{row}"+ do->
+                        str=""
+                        for k in [0...Math.floor(Math.random()*5)]
+                            str+= chars[Math.floor(Math.random()*chars.length)]
+                        return str
+            console.log "==data=="
+            console.dir data
+            return _data
+        getCellValue:(row,col)->
+            return this.data[row][col]
+        getRowSize:()->
+            return this.data.length
+        getColSize:()->
+            return this.data[0].length
+        #overwrite
+        renderCell:(row,col,el)->
+            val=this.getCellValue(row,col)
+            #el.append("<div class=\"cell-format\">#{val}</div>")
+            el.text("#{val}")
+            return el
+        getColWidth:(col)->
+            if col < freezeColSize
+                tdTop=$("tr:first td:eq(#{col})",ltGridEl)
+                tdBottom=$("tr:first td:eq(#{col})",lbGridEl)
+                width=Math.max tdTop.width(),tdBottom.width()
+            else
+                tdTop=$("tr:first td:eq(#{col-freezeColSize})",rtGridEl)
+                tdBottom=$("tr:first td:eq(#{col-freezeColSize})",rbGridEl)
+                wideh=Math.max tdTop.width(),tdBottom.width()
+            return width 
+        getRowHeight:(row)->
+            if row < freezeRowSize
+                tdLeft=$("tr:eq(#{row}) td:first",ltGridEl)
+                tdRight=$("tr:eq(#{row}) td:first",rtGridEl)
+                height=Math.max tdLeft.height(),tdRight.height()
+            else
+                tdLeft=$("tr:eq(#{row-freezeRowSize}) td:first",lbGridEl)
+                tdRight=$("tr:eq(#{row-freezeRowSize}) td:first",rbGridEl)
+                height=Math.max tdLeft.height(),tdRight.height()
+            return height
+        getGridWidth:()->
+            return 800
+        getGridHeight:()->
+            return 600
+    _arguments=arguments
+    options=$.extend options,defaultOptions
+    $(this).each ()->
+        if $(this).size()>1
+            $(this).aGrid.apply this,_arguments
+        else if $(this).size()==1
+            self=$(this).get(0)
+            do ()->
+                if typeof _arguments[0] is 'string'
+                    console.log _arguments[0]
+                else 
+                    console.dir self
+                    #init elements
+                    if !self.aGridOption
+                        console.log "init"
+                        self.aGridOption=$.extend _.clone(options),defaultOptions
+                    else 
+                        console.error "el has init once"
 
-dataSource=
-    data:data
-    getCellValue:(row,col)->
-        return data[row][col]
-    getRowSize:()->
-        return this.data.length
-    getColSize:()->
-        return this.data[0].length
-    getCell:(row,col)->
+                        
 
-    renderCell:(row,col,el)->
-        val=this.getCellValue(row,col)
-        #el.append("<div class=\"cell-format\">#{val}</div>")
-        el.text("#{val}")
-        return el
-    getFreezeRowSize:()->
-        return 2
-    getFreezeColSize:()->
-        return 3
-    getColWidth:(col)->
-        if col < freezeColSize
-            tdTop=$("tr:first td:eq(#{col})",ltGridEl)
-            tdBottom=$("tr:first td:eq(#{col})",lbGridEl)
-            width=Math.max tdTop.width(),tdBottom.width()
-        else
-            tdTop=$("tr:first td:eq(#{col-freezeColSize})",rtGridEl)
-            tdBottm=$("tr:first td:eq(#{col-freezeColSize})",rbGridEl)
-            wideh=Math.max tdTop.width(),tdBottom.width()
-        return width 
-    getRowHeight:(row)->
-        if row < freezeRowSize
-            tdLeft=$("tr:eq(#{row}) td:first",ltGridEl)
-            tdRight=$("tr:eq(#{row}) td:first",rtGridEl)
-            height=Math.max tdLeft.height(),tdRight.height()
-        else
-            tdLeft=$("tr:eq(#{row-freezeRowSize}) td:first",lbGridEl)
-            tdRight=$("tr:eq(#{row-freezeRowSize}) td:first",rbGridEl)
-            height=Math.max tdLeft.height(),tdRight.height()
-        return height
-    getGridWidth:()->
-        return 800
-    getGridHeight:()->
-        return 600
-do ()->
+$(".a-grid").aGrid()
+
+###
     #init
     ds=dataSource
     gridEl=$(".a-grid")
+    gridMainEl=null
     ltGridEl=rtGridEl=lbGridEl=rbGridEl=null
+    freezeColSize=freezeRowSize=-1
 
     getScrollBarSize=_.once ()->
         gridEl.append("<div class='p'><div class='s'>initialize</div></div>")
@@ -72,15 +102,13 @@ do ()->
     render=()->
         console.log "render"
         createGrid()
-        freezeGrid()
-        layoutGrid()
-        bindEventOnGrid()
+        freezeGrid(2,3)
+        #layoutGrid()
+        #bindEventOnGrid()
     createGrid=()->
         console.log "==createGrid=="
         colSize=ds.getColSize()
         rowSize=ds.getRowSize()
-        freezeColSize=ds.getFreezeColSize()
-        freezeRowSize=ds.getFreezeRowSize()
 
         gridEl.empty().append """
             <div class="grid-main">
@@ -90,6 +118,7 @@ do ()->
                 <div class="grid-rb"></div>
             </div>
         """
+        gridMainEl=$(".grid-main",gridEl)
         ltGridEl=$(".grid-lt",gridEl)
         rtGridEl=$(".grid-rt",gridEl)
         lbGridEl=$(".grid-lb",gridEl)
@@ -102,6 +131,94 @@ do ()->
                     <tbody></tbody>
                 </table>
             """
+        #fill cell
+        trEls=[]
+        for row in [0...rowSize]
+            trEl=$("<tr></tr>")
+            tdEls=[]
+            for col in [0...colSize]
+                tdEl=$("""<td class="grid-col-#{col} grid-row-#{row} grid-cell-#{col}-#{row} grid-cell"></td>""")
+                ds.renderCell(row,col,tdEl)
+                #tdEl.append ds.renderCell(row,col,tdEl)
+                tdEls.push tdEl
+            trEl.append tdEls 
+            trEls.push trEl
+        console.dir trEls
+        $(".grid-table",rbGridEl).append(trEls)
+
+        #fit table size
+        if rbGridEl.width() < gridEl.width()
+            #pass
+            $(".grid-table",rbGridEl).css(
+                'table-layout','fixed'
+            )
+        else 
+            $(".grid-table",rbGridEl).css(
+                'table-layout','fixed'
+                'width':'100%'
+            )
+        $("tr:first td",rbGridEl).each ()->
+            $(this).outerWidth $(this).outerWidth()
+        $("tr",rbGridEl).each ()->
+            $(this).outerHeight $(this).outerHeight()
+    freezeGrid=(r=-1,c=-1)->
+        freezeRowSize=r
+        freezeColSize=c
+        rowSize=ds.getRowSize()
+        colSize=ds.getColSize()
+
+        if freezeRowSize>0
+            for row in [0...freezeRowSize]
+                $("tr:eq(#{row})",rbGridEl).remove().appendTo($('tbody',rtGridEl))
+
+        if freezeColSize>0
+            for row in [0...rowSize]
+                if row < freezeRowSize
+                    tr=$("<tr></tr>")
+                    $("tr td:lt(#{freezeColSize})",rtGridEl).appendTo tr
+                    $("tbody",ltGridEl).append(tr)
+                else 
+                    tr=$("<tr></tr>")
+                    $("tr td:lt(#{freezeColSize})",rbGridEl).appendTo tr
+                    $("tbody",lbGridEl).append(tr)
+        if freezeRowSize>0
+            gridMainEl.addClass("grid-freeze-row")
+        else
+            gridMainEl.removeClass("grid-freeze-row")
+        if freezeColSize>0
+            gridMainEl.addClass("grid-freeze-col")
+        else
+            gridMainEl.removeClass("grid-freeze-col")
+    layoutGrid=()->
+        colSize=ds.getColSize()
+        rowSize=ds.getRowSize()
+
+        ltWidth=0
+        rtWidth=0
+        for col in [0...colSize]
+            if col < freezeColSize
+                tdTop=$("tr:first td:eq(#{col})",ltGridEl)
+                tdBottom=$("tr:first td:eq(#{col})",lbGridEl)
+            else
+                tdTop=$("tr:first td:eq(#{col-freezeColSize})",rtGridEl)
+                tdBottom=$("tr:first td:eq(#{col-freezeColSize})",rbGridEl)
+            w=Math.max tdTop.outerWidth(),tdBottom.outerWidth()
+            tdTop.outerWidth w
+            tdBottom.outerWidth w
+            ltWidth+=w if col < freezeColSize
+            rtWidth+=w if col >= freezeColSize
+        console.log ltWidth,rtWidth
+        $(".grid-table",ltGridEl).outerWidth ltWidth
+        $(".grid-table",lbGridEl).outerWidth ltWidth
+
+        rtGridEl.outerWidth rtWidth
+        rbGridEl.outerWidth rtWidth
+        $(".grid-table",rtGridEl).outerWidth rtWidth
+        $(".grid-table",rbGridEl).outerWidth rtWidth
+
+        #rtGridEl.outerWidth rtWidth
+        #rbGridEl.outerWidth rtWidth
+       
     freezeGrid=()->
         console.log "==freeze grid=="
         freezeColSize=ds.getFreezeColSize()
@@ -288,16 +405,12 @@ do ()->
         _.each [ltGridEl,rtGridEl,lbGridEl],(el)->
             $(el).bind "mousewheel",(e)->
                 #pass
-                ###
                 top=rbGridEl.scrollTop()
                 if e.originalEvent.deltaY > 0
                     rbGridEl.scrollTop(top+rbGridEl.height()*0.33)
                 else if e.originalEvent < 0
                     rbGridEl.scrollTop(top-rbGridEl.height()*0.33)
-                ###
     #===test======
+    ###
 
-
-    _.defer ()->
-        render()
 
