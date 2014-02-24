@@ -1,24 +1,47 @@
 @import "compass"
+.cell-format
+    margin: 0
+    padding: 0
 .a-grid
     display: block
     position: relative
     background: #efefef
     width: 800px
     height: 600px
-    overflow: scroll
+    overflow: hidden
     border: 1px solid #333
-
     .grid-lt,.grid-rt,.grid-lb,.grid-rb
         position: absolute
         left: 0
         top: 0
-    table
-        border-collapse: collapse
-    table,td,th
-        +box-sizing(border-box)
-        border: 1px solid #aaa
-    td,th
         overflow: hidden
-        width: 100px
-        height: 25px
+    .grid-lt
+        z-index: 2
+    .grid-rt,.grid-lb
+        z-index: 1
+    .grid-rb
+        overflow: scroll
+        z-index: 0
 
+    .grid-lt table
+        background: #f99
+    .grid-rt table
+        background: #99f
+    .grid-lb table
+        background: #fcc
+    .grid-rb table
+        background: #ccf
+
+        
+    .grid-table
+        border-collapse: collapse
+        position: relative
+        table-layout: fixed
+        &,td,th
+            +box-sizing(border-box)
+            border: 0px
+            border-right: 1px solid #aaa
+            border-bottom: 1px solid #aaa
+            
+            padding: 0
+            margin: 0
