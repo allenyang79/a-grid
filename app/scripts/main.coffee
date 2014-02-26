@@ -3,14 +3,15 @@ console.log "a-grid GO"
 
 $.fn.aGrid=(options)->
     #helper
-    this.getScrollBarSize=_.once ()->
-        gridEl.append("<div class='p' style='visibility:hidden;'><div class='s'>initialize</div></div>")
-        $(".p",gridEl).css("overflow","scroll")
-        w=$(".p",gridEl).width()-$(".s",gridEl).width()
-        $(".p",gridEl).remove()
+    _getScrollBarSize=_.once ()->
+        p=$("<div class='p' style='visibility:hidden;'><div class='s'>initialize</div></div>")
+        $("body").append(p)
+        p.css("overflow","scroll")
+        w=p.width()-$(".s",p).width()
+        p.remove()
         return w
 
-    this.defaultOptions= 
+    _defaultOptions= 
         #implement
         data:do()->
             _data=[]
@@ -24,7 +25,7 @@ $.fn.aGrid=(options)->
                             str+= chars[Math.floor(Math.random()*chars.length)]
                         return str
             console.log "==data=="
-            console.dir data
+            console.dir _data 
             return _data
         getCellValue:(row,col)->
             return this.data[row][col]
@@ -62,28 +63,151 @@ $.fn.aGrid=(options)->
             return 800
         getGridHeight:()->
             return 600
+
     _arguments=arguments
-    options=$.extend options,defaultOptions
     $(this).each ()->
         if $(this).size()>1
             $(this).aGrid.apply this,_arguments
         else if $(this).size()==1
             self=$(this).get(0)
             do ()->
-                if typeof _arguments[0] is 'string'
-                    console.log _arguments[0]
-                else 
-                    console.dir self
-                    #init elements
-                    if !self.aGridOption
-                        console.log "init"
-                        self.aGridOption=$.extend _.clone(options),defaultOptions
+
+                gridEl=null
+                gridMainEl=null
+                ltGridEl=rtGridEl=lbGridEl=rbGridEl=null
+                _initGrid=()->
+                    gridEl=$(self)
+                    console.log "==_initGrid=="
+                    colSize=self.aGridOption.getColSize()
+                    rowSize=self.aGridOption.getRowSize()
+                    gridEl.empty().append """
+                        <div class="grid-main">
+                            <div class="grid-lt"></div>
+                            <div class="grid-rt"></div>
+                            <div class="grid-lb"></div>
+                            <div class="grid-rb"></div>
+                        </div>
+                    """
+
+                    gridMainEl=$(".grid-main",gridEl)
+                    ltGridEl=$(".grid-lt",gridEl)
+                    rtGridEl=$(".grid-rt",gridEl)
+                    lbGridEl=$(".grid-lb",gridEl)
+                    rbGridEl=$(".grid-rb",gridEl)
+
+                    _.each [ltGridEl,rtGridEl,lbGridEl,rbGridEl],(el)->
+                        el.append """
+                            <table class="grid-table">
+                                <thead></thead>
+                                <tbody></tbody>
+                            </table>
+                        """
+                    #fill cell
+                    trEls=[]
+                    for row in [0...rowSize]
+                        trEl=$("<tr></tr>")
+                        tdEls=[]
+                        for col in [0...colSize]
+                            tdEl=$("""<td class="grid-col-#{col} grid-row-#{row} grid-cell-#{col}-#{row} grid-cell"></td>""")
+                            self.aGridOption.renderCell(row,col,tdEl)
+                            tdEls.push tdEl
+                        trEl.append tdEls 
+                        trEls.push trEl
+                    console.dir trEls
+                    $(".grid-table",rbGridEl).append(trEls)
+
+                    #fit table size
+                    if rbGridEl.width() < gridEl.width()
+                        #pass
+                        $(".grid-table",rbGridEl).css(
+                            'table-layout','fixed'
+                            'width':'auto'
+                        )
                     else 
-                        console.error "el has init once"
+                        $(".grid-table",rbGridEl).css(
+                            'table-layout','fixed'
+                            'width':'100%'
+                        )
+                    $("tr:first td",rbGridEl).each ()->
+                        $(this).outerWidth $(this).outerWidth()
+                    $("tr",rbGridEl).each ()->
+                        $(this).outerHeight $(this).outerHeight()
 
-                        
+                    $(".grid-table",rbGridEl).css
+                        width:$(".grid-table",rbGridEl).outerWidth() 
+                        #height:$(".grid-table",rbGridEl).outerHeight() 
+                    #save each row amd height width
+                #end of _initGrid
+                _resetFreezeGrid=()->
 
-$(".a-grid").aGrid()
+                _freezeGrid=(freezeRowSize,freezeColSize)-> 
+                    console.log "==_freezeGrid=="
+                    freezeRowSize?=self.aGridOption.getFreezeRowSize()
+                    freezeColSize?=self.aGridOption.getFreezeRowSize()
+                    rowSize=self.aGridOption.getRowSize()
+                    colSize=self.aGridOption.getColSize()
+
+                    if freezeRowSize>0
+                        for row in [0...freezeRowSize]
+                            $("tr:eq(#{row})",rbGridEl).remove().appendTo($('tbody',rtGridEl))
+                    if freezeColSize>0
+                        for row in [0...rowSize]
+                            if row < freezeRowSize
+                                lTr=$("<tr></tr>")
+                                rTr=$("tr:eq(#{row})",rtGridEl)
+                                attrs = rTr.prop("attributes")
+                                _.each attrs,(obj)->
+                                    lTr.attr(obj.name,obj.value)
+                                rTr.find("td:lt(#{freezeColSize})").appendTo lTr
+                                $("tbody",ltGridEl).append(lTr)
+                            else 
+                                lTr=$("<tr></tr>")
+                                rTr=$("tr:eq(#{row-freezeRowSize})",rbGridEl)
+                                attrs = rTr.prop("attributes")
+                                _.each attrs,(obj)->
+                                    lTr.attr(obj.name,obj.value)
+                                rTr.find("td:lt(#{freezeColSize})").appendTo lTr
+                                $("tbody",lbGridEl).append(lTr)
+                    if freezeRowSize>0
+                        gridMainEl.addClass("grid-freeze-row")
+                    else
+                        gridMainEl.removeClass("grid-freeze-row")
+                    if freezeColSize>0
+                        gridMainEl.addClass("grid-freeze-col")
+                    else
+                        gridMainEl.removeClass("grid-freeze-col")
+                _layoutGrid=()->
+                    console.log "==_layoutGrid=="
+                    defaultCss=
+                        width:rbGridEl.outerWidth()
+                        #height:rbGridEl.outerHeight()
+                    $(".grid-table",ltGridEl).css defaultCss
+                    $(".grid-table",rtGridEl).css defaultCss
+                    $(".grid-table",lbGridEl).css defaultCss
+
+                #end of freezeGrid
+                _renderGrid=()->
+                    gridEl=$(self)
+                    gridEl.empty()
+                    _initGrid()
+                    _freezeGrid(2,3)
+                    _layoutGrid()
+                _.defer ()->
+                    #main code
+                    if typeof _arguments[0] is 'string'
+                        console.log _arguments[0]
+                    else 
+                        console.dir self
+                        #init elements
+                        if !self.aGridOption
+                            console.log "init"
+                            self.aGridOption=_.defaults _.clone(options or {}),_defaultOptions
+                            console.dir self.aGridOption
+                            _renderGrid()
+                        else 
+                            console.error "el has init once"
+
+$(".a-grid:eq(0)").aGrid()
 
 ###
     #init

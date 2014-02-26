@@ -15,10 +15,19 @@
         position: relative
         width: 100%
         height: 100%
+
     .grid-lt,.grid-rt,.grid-lb,.grid-rb
         position: absolute
         left: 0 
         top: 0
+
+
+    .grid-layout
+        .grid-lt,.grid-rt,.grid-lb,.grid-rb
+            .grid-table
+                table-layout: fixed
+                width: 100%
+
     .grid-lt,.grid-rt,.grid-lb
         display: none
     .grid-rb
@@ -33,6 +42,8 @@
     .grid-freeze-row.grid-freeze-col
         .grid-lt
             display: block
+
+
     .grid-lt
         z-index: 2
     .grid-rt,.grid-lb
